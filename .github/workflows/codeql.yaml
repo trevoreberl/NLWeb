@@ -13,11 +13,15 @@ concurrency:
 jobs:
   analyse:
     runs-on: ${{ matrix.os }}
-    # Only run for fork PRs since CodeQL is already configured in repository settings
-    if: github.event.pull_request.head.repo.fork == true
+    # Only run for fork PRs and manual workflow dispatches
+    if: >
+      (github.event_name == 'pull_request_target' && 
+       github.event.pull_request.head.repo.fork == true) ||
+      github.event_name == 'workflow_dispatch'
     permissions:
       security-events: write
       contents: read
+      # Add pull-requests permission for pull_request_target
       pull-requests: read
     strategy:
       matrix:
@@ -31,8 +35,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Checkout the PR head for fork analysis
-          ref: ${{ github.event.pull_request.head.sha }}
+          # For pull_request_target, checkout the PR head
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.ref }}
 
       - name: Initialise CodeQL
         uses: github/codeql-action/init@v3
